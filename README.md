@@ -1,6 +1,6 @@
 # Tidy Tube
 
-**A lightweight script to declutter YouTube by hiding unwanted videos, filtering recommendations, and improving your browsing experience.**
+**A lightweight script to declutter YouTube by hiding unwanted videos, filtering recommendations, improving your browsing experience.**
 
 ---
 
