@@ -17,7 +17,7 @@ This is a simple, customizable tool you can run in your browser console or as a 
 
 
 ## Installation
-You can run this script using extensions like Tampermonkey.
+You can run this script using extensions like Tampermonkey and installing via [Greasy Fork](https://greasyfork.org/en/scripts/551895-tidy-tube).
 
 ## Script
 ```
