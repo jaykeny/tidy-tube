@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tidy Tube
 // @namespace    https://github.com/jaykeny/
-// @version      1.1.0
+// @version      1.1.1
 // @description  A lightweight script to declutter YouTube by hiding videos for members and videos under a certain view count.
 // @author       JayKeny
 // @match        https://www.youtube.com/*
@@ -11,11 +11,11 @@
 
 // Settings
 const SETTINGS = {
-  hideMembersOnly: true,  // hide member only videos
-  minViews: 100000,       // hide normal videos under this
-  hideLiveUnder: 100000,  // hide live streams with fewer viewers than this
-  hideOlderThanMonths: 1, // hide videos older than this number of months
-  hideWatched: true       // hide videos with watched progress bar
+  hideMembersOnly: true,
+  minViews: 100000,
+  hideLiveUnder: 100000,
+  hideOlderThanMonths: 1,
+  hideWatched: true
 };
 
 // Helper function to hide element + parent if applicable
@@ -31,7 +31,6 @@ function hideElement(el) {
 function isOlderThanMonths(text, months) {
   const match = text.match(/(\d+)\s+(second|minute|hour|day|week|month|year)s?\s+ago/i);
   if (!match) return false;
-
   const value = parseInt(match[1], 10);
   const unit = match[2].toLowerCase();
 
@@ -48,8 +47,20 @@ function isOlderThanMonths(text, months) {
 
 // Core filter function
 function filterVideos() {
-  document.querySelectorAll('yt-lockup-view-model').forEach(function(el) {
+  const isChannelVideosPage = location.pathname.includes("/videos");
+
+  document.querySelectorAll('ytd-rich-item-renderer').forEach(function(el) {
     const text = el.textContent;
+
+    // For channel video pages: ONLY hide Members only videos
+    if (isChannelVideosPage) {
+      if (SETTINGS.hideMembersOnly && text.includes('Members only')) {
+        hideElement(el);
+      }
+      return; // skip other filters
+    }
+
+    // Normal pages: all filters apply
 
     // Hide "Members only"
     if (SETTINGS.hideMembersOnly && text.includes('Members only')) {
@@ -64,7 +75,6 @@ function filterVideos() {
       const unit = viewsMatch[2];
       if (unit === 'K') num *= 1000;
       else if (unit === 'M') num *= 1000000;
-
       if (num < SETTINGS.minViews) {
         hideElement(el);
         return;
@@ -78,7 +88,6 @@ function filterVideos() {
       const unit = liveMatch[2];
       if (unit === 'K') num *= 1000;
       else if (unit === 'M') num *= 1000000;
-
       if (num < SETTINGS.hideLiveUnder) {
         hideElement(el);
         return;
@@ -110,7 +119,4 @@ const observer = new MutationObserver(function(mutationsList) {
   }
 });
 
-observer.observe(document.body, {
-  childList: true,
-  subtree: true
-});
+observer.observe(document.body, { childList: true, subtree: true });
