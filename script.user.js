@@ -11,11 +11,11 @@
 
 // Settings
 const SETTINGS = {
-  hideMembersOnly: true,
-  minViews: 100000,
-  hideLiveUnder: 100000,
-  hideOlderThanMonths: 1,
-  hideWatched: true
+  hideMembersOnly: true,  // hide member videos
+  minViews: 100000,       // hide normal videos under this
+  hideLiveUnder: 100000,  // hide live streams with fewer viewers than this
+  hideOlderThanMonths: 1, // hide videos older than this number of months
+  hideWatched: true       // hide videos with watched progress bar
 };
 
 // Helper function to hide element + parent if applicable
