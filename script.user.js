@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tidy Tube
 // @namespace    https://github.com/jaykeny/
-// @version      1.0.0
+// @version      1.1.0
 // @description  A lightweight script to declutter YouTube by hiding videos for members and videos under a certain view count.
 // @author       JayKeny
 // @match        https://www.youtube.com/*
@@ -11,9 +11,11 @@
 
 // Settings
 const SETTINGS = {
-  hideMembersOnly: true,
-  minViews: 100000,    // hide normal videos under this
-  hideLiveUnder: 100000 // hide live streams with fewer viewers than this
+  hideMembersOnly: true,  // hide member only videos
+  minViews: 100000,       // hide normal videos under this
+  hideLiveUnder: 100000,  // hide live streams with fewer viewers than this
+  hideOlderThanMonths: 1, // hide videos older than this number of months
+  hideWatched: true       // hide videos with watched progress bar
 };
 
 // Helper function to hide element + parent if applicable
@@ -23,6 +25,25 @@ function hideElement(el) {
   parent.style.height = '0';
   parent.style.margin = '0';
   parent.style.padding = '0';
+}
+
+// Helper function to check video age
+function isOlderThanMonths(text, months) {
+  const match = text.match(/(\d+)\s+(second|minute|hour|day|week|month|year)s?\s+ago/i);
+  if (!match) return false;
+
+  const value = parseInt(match[1], 10);
+  const unit = match[2].toLowerCase();
+
+  if (unit === "month" && value >= months) return true;
+  if (unit === "year") return true;
+  if (unit === "week" && (value / 4) >= months) return true;
+  if (unit === "day" && (value / 30) >= months) return true;
+  if (unit === "hour" && (value / (24 * 30)) >= months) return true;
+  if (unit === "minute" && (value / (60 * 24 * 30)) >= months) return true;
+  if (unit === "second" && (value / (60 * 60 * 24 * 30)) >= months) return true;
+
+  return false;
 }
 
 // Core filter function
@@ -62,6 +83,18 @@ function filterVideos() {
         hideElement(el);
         return;
       }
+    }
+
+    // Hide videos older than specified months
+    if (SETTINGS.hideOlderThanMonths && isOlderThanMonths(text, SETTINGS.hideOlderThanMonths)) {
+      hideElement(el);
+      return;
+    }
+
+    // Hide watched videos
+    if (SETTINGS.hideWatched && el.querySelector('.ytThumbnailOverlayProgressBarHostWatchedProgressBarSegment')) {
+      hideElement(el);
+      return;
     }
   });
 }
