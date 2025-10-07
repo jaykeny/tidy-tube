@@ -1,6 +1,6 @@
 # Tidy Tube
 
-**A lightweight script to declutter YouTube by hiding unwanted videos, filtering recommendations, improving your browsing experience.**
+**My feed has become useless, so after months of hitting not interested on member videos and videos under 1000 views that were bots, I decided to build something that would make my feed and recommendations actually useful.**
 
 ---
 
