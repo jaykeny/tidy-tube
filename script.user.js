@@ -1,3 +1,14 @@
+// ==UserScript==
+// @name         Tidy Tube
+// @namespace    https://github.com/jaykeny/
+// @version      1.0.0
+// @description  A lightweight script to declutter YouTube by hiding videos for members and videos under a certain view count.
+// @author       JayKeny
+// @match        https://www.youtube.com/*
+// @grant        none
+// @run-at       document-idle
+// ==/UserScript==
+
 // Settings
 const SETTINGS = {
   hideMembersOnly: true,
