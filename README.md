@@ -1,6 +1,6 @@
 # Tidy Tube
 
-**My feed for YouTube has become useless, so after months of hitting not interested on member videos and videos under 1000 views that were bots, I decided to build something that would make my feed and recommendations actually useful.**
+**My feed for YouTube has become cluttered with videos that were made by bots or I don't have access to, so after months of hitting not interested on member videos and videos under 1000 views that were bots, I decided to build something that would make my feed and recommendations actually show things I would watch.**
 
 ---
 
