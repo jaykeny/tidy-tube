@@ -1,11 +1,9 @@
 # Tidy Tube
 
-**My feed for YouTube has become cluttered with videos that were made by bots or I don't have access to, so after months of hitting not interested on member videos and videos under 1000 views that were bots, I decided to build something that would make my feed and recommendations actually show things I would watch.**
+My feed for YouTube has become cluttered with videos that were either member only or made by bots, so after months of hitting not interested on them, I decided to build something that would make my feed and recommendations actually show things I would watch.
 
----
 
 ## Description
-
 Tidy Tube lets you:
 - Hide "Members only" videos
 - Filter videos below a specified view count
@@ -14,8 +12,6 @@ Tidy Tube lets you:
 - Hide videos that have a progress bar
 
 This is a simple, customizable tool you can run in your browser console or as a user script.
-
----
 
 
 ## Installation
