@@ -145,8 +145,22 @@ You can adjust the behavior in the `SETTINGS` object in the script:
 ```
 javascript
 const SETTINGS = {
-  hideMembersOnly: true,    // Hide "Members only" videos
-  minViews: 100000,         // Hide normal videos under this view count
-  hideLiveUnder: 100000     // Hide live streams with fewer viewers than this
+  hideMembersOnly: true,  // hide member videos
+  minViews: 100000,       // hide normal videos under this
+  hideLiveUnder: 100000,  // hide live streams with fewer viewers than this
+  hideOlderThanMonths: 1, // hide videos older than this number of months
+  hideWatched: true       // hide videos with watched progress bar
 };
 ```
+
+## Changelog
+
+### 1.1.1
+Bugfix: Channel videos were showing member videos
+
+### 1.1.0
+Added: Ability to hide videos older than X months
+Added: Ability to hide videos that have a progress bar
+
+### 1.0.0
+Initial Release
