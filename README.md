@@ -10,6 +10,8 @@ Tidy Tube lets you:
 - Hide "Members only" videos
 - Filter videos below a specified view count
 - Hide live streams with fewer viewers than a set threshold
+- Hide videos older than one month
+- Hide videos that have a progress bar
 
 This is a simple, customizable tool you can run in your browser console or as a user script.
 
