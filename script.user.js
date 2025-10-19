@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tidy Tube
 // @namespace    https://github.com/jaykeny/
-// @version      1.2.0
+// @version      1.3.0
 // @description  A lightweight script to declutter YouTube by hiding videos for members and videos under a certain view count.
 // @author       JayKeny
 // @match        https://www.youtube.com/*
@@ -11,11 +11,13 @@
 
 // Settings
 const SETTINGS = {
-  hideMembersOnly: true, // hide member videos
-  minViews: 1000, // hide normal videos under this view count
-  hideLiveUnder: 100000, // hide live streams with fewer viewers than this
+  hideMembersOnly: true,  // hide member videos
+  minViews: 1000,         // hide normal videos under this view count
+  hideLiveUnder: 100000,  // hide live streams with fewer viewers than this
   hideOlderThanMonths: 1, // hide videos older than this number of months
-  hideWatched: true, // hide videos with watched progress bar
+  hideWatched: true,      // hide videos with watched progress bar
+  hidePlaylists: true,    // Hide playlist blocks in the feed
+  hideFeedNudges: true,   // Hide feed nudges like "Looking for something different?"
 };
 
 // Helper function to hide element + parent if applicable
@@ -71,6 +73,18 @@ function getViewCount(el) {
   return num;
 }
 
+// Checks if video is watched
+function isWatched(el) {
+  const progressBars = el.querySelectorAll("div.ytThumbnailOverlayProgressBarHostWatchedProgressBar");
+  for (let bar of progressBars) {
+    const segment = bar.querySelector("div");
+    if (segment && parseFloat(segment.style.width) > 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
 // Core filter logic
 function filterVideos() {
   const isChannelVideosPage = location.pathname.includes("/videos");
@@ -86,29 +100,33 @@ function filterVideos() {
 
     // Channel Videos tab: only hide members-only content
     if (isChannelVideosPage && SETTINGS.hideMembersOnly) {
-      if (
-        text.includes("Members only") ||
-        el.querySelector(".sponsorThumbnailLabelVisible") ||
-        text.includes("Exclusive Access")
-      ) {
+      if (text.includes("Members only") || el.querySelector(".sponsorThumbnailLabelVisible") || text.includes("Exclusive Access")) {
         hideElement(el);
       }
       return;
     }
 
-    // Hide YouTube Mixes (auto-generated playlists)
-    if (/Mix\s*-\s*/i.test(text) || text.includes("Mix –")) {
-      hideElement(el);
-      return;
+    // Hide playlists
+    if (SETTINGS.hidePlaylists) {
+      const hasPlaylistLink = Array.from(el.querySelectorAll('a')).some(a => a.href.includes('?list=') || a.href.includes('&list='));
+      
+      if (hasPlaylistLink) {
+        hideElement(el);
+        return;
+      }
+    }
+
+    // Hide "feed nudge" suggestion sections like "Looking for something different?"
+    if (SETTINGS.hideFeedNudges) {
+      if (el.querySelector('ytd-feed-nudge-renderer')) {
+        hideElement(el);
+        return;
+      }
     }
 
     // Hide members-only videos
     if (SETTINGS.hideMembersOnly) {
-      if (
-        text.includes("Members only") ||
-        el.querySelector(".sponsorThumbnailLabelVisible") ||
-        text.includes("Exclusive Access")
-      ) {
+      if (text.includes("Members only") || el.querySelector(".sponsorThumbnailLabelVisible") || text.includes("Exclusive Access")) {
         hideElement(el);
         return;
       }
@@ -135,21 +153,13 @@ function filterVideos() {
     }
 
     // Hide videos older than specified months
-    if (
-      SETTINGS.hideOlderThanMonths &&
-      isOlderThanMonths(text, SETTINGS.hideOlderThanMonths)
-    ) {
+    if (SETTINGS.hideOlderThanMonths && isOlderThanMonths(text, SETTINGS.hideOlderThanMonths)) {
       hideElement(el);
       return;
     }
 
     // Hide watched videos
-    if (
-      SETTINGS.hideWatched &&
-      el.querySelector(
-        ".ytThumbnailOverlayProgressBarHostWatchedProgressBarSegment"
-      )
-    ) {
+    if (SETTINGS.hideWatched && isWatched(el)) {
       hideElement(el);
       return;
     }
