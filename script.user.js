@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tidy Tube
 // @namespace    https://github.com/jaykeny/
-// @version      1.3.0
+// @version      1.3.1
 // @description  A lightweight script to declutter YouTube by hiding videos for members and videos under a certain view count.
 // @author       JayKeny
 // @match        https://www.youtube.com/*
@@ -53,23 +53,23 @@ function isOlderThanMonths(text, months) {
 
 // Get view count from the new YouTube layout
 function getViewCount(el) {
-  const span = Array.from(el.querySelectorAll('span[role="text"]')).find((s) =>
-    /\bviews?\b/i.test(s.textContent)
-  );
+  const viewText = Array.from(el.querySelectorAll('.yt-core-attributed-string, span[role="text"]'))
+    .map(e => e.textContent.trim())
+    .find(t => /\bviews?\b/i.test(t));
 
-  if (!span) return null;
+  if (!viewText) return null;
 
-  const match = span.textContent.match(/([\d,.]+)\s*(K|M)?\s*views?/i);
+  // Handle "No views"
+  if (/no views?/i.test(viewText)) return 0;
 
+  const match = viewText.match(/([\d,.]+)\s*(K|M)?\s*views?/i);
   if (!match) return null;
 
   let num = parseFloat(match[1].replace(/,/g, ""));
   const unit = match[2];
-
   if (unit === "K") num *= 1000;
-
   else if (unit === "M") num *= 1000000;
-  
+
   return num;
 }
 
@@ -89,12 +89,59 @@ function isWatched(el) {
 function filterVideos() {
   const isChannelVideosPage = location.pathname.includes("/videos");
 
-  document
-    .querySelectorAll("ytd-rich-section-renderer")
-    .forEach(function (section) {
-      hideElement(section);
-    });
+  // Sections
+  document.querySelectorAll("ytd-rich-section-renderer").forEach(function (section) {
+    hideElement(section);
+  });
 
+  // Video pages
+  document.querySelectorAll("yt-lockup-view-model").forEach(function (section) {
+    const text = section.textContent;
+
+    // Hide members-only videos
+    if (SETTINGS.hideMembersOnly) {
+      const isMembersOnly = Array.from(section.querySelectorAll('.yt-badge-shape__text'))
+        .some(b => b.textContent.trim().toLowerCase().includes("members only"));
+
+      if (isMembersOnly || text.includes("Members only")) {
+        hideElement(section);
+        return;
+      }
+    }
+
+    // Hide videos under minViews
+    const views = getViewCount(section.querySelector('.yt-lockup-view-model__metadata') || section);
+    if (views !== null && views < SETTINGS.minViews) {
+      hideElement(section);
+      return;
+    }
+
+    // Hide live videos under hideLiveUnder
+    const liveMatch = text.match(/([\d,.]+)\s*(K|M)?\s*watching/i);
+    if (liveMatch) {
+      let num = parseFloat(liveMatch[1].replace(/,/g, ""));
+      const unit = liveMatch[2];
+      if (unit === "K") num *= 1000;
+      else if (unit === "M") num *= 1000000;
+      if (num < SETTINGS.hideLiveUnder) {
+        hideElement(section);
+        return;
+      }
+    }
+
+    // Hide older videos
+    if (SETTINGS.hideOlderThanMonths && isOlderThanMonths(text, SETTINGS.hideOlderThanMonths)) {
+      hideElement(section);
+      return;
+    }
+
+    if (SETTINGS.hideWatched && isWatched(section)) {
+      hideElement(section);
+      return;
+    }
+  });
+
+  // Home
   document.querySelectorAll("ytd-rich-item-renderer").forEach(function (el) {
     const text = el.textContent;
 
