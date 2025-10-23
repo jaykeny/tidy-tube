@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tidy Tube
 // @namespace    https://github.com/jaykeny/
-// @version      1.3.1
+// @version      1.4.0
 // @description  A lightweight script to declutter YouTube by hiding videos for members and videos under a certain view count.
 // @author       JayKeny
 // @match        https://www.youtube.com/*
@@ -20,6 +20,49 @@ const SETTINGS = {
   hideFeedNudges: true,   // Hide feed nudges like "Looking for something different?"
 };
 
+// Translations
+const TRANSLATIONS = {
+  en: {
+    membersOnly: ["Members only", "Exclusive Access"],
+    views: /\bviews?\b/i,
+    noViews: /no views?/i,
+    watching: /([\d,.]+)\s*(K|M)?\s*watching/i,
+    ago: /(\d+)\s+(second|minute|hour|day|week|month|year)s?\s+ago/i,
+    units: {
+      second: "second",
+      minute: "minute",
+      hour: "hour",
+      day: "day",
+      week: "week",
+      month: "month",
+      year: "year"
+    }
+  },
+  fr: {
+    membersOnly: ["Réservé aux membres", "Accès exclusif"],
+    views: /\b(vues?)\b/i,
+    noViews: /aucune? vue/i,
+    watching: /([\d,.]+)\s*(K|M)?\s*(personnes)?\s*(regardent|en direct)/i,
+    ago: /il y a\s+(\d+)\s+(seconde|minute|heure|jour|semaine|mois|an|année)s?/i,
+    units: {
+      seconde: "second",
+      minute: "minute",
+      heure: "hour",
+      jour: "day",
+      semaine: "week",
+      mois: "month",
+      an: "year",
+      année: "year",
+      ans: "year",
+      années: "year"
+    }
+  }
+};
+
+const LANGUAGE = document.documentElement.lang.slice(0, 2) || "en";
+const TRANSLATION = TRANSLATIONS[LANGUAGE] || TRANSLATIONS.en;
+
+
 // Helper function to hide element + parent if applicable
 function hideElement(el) {
   const parent = el.closest("ytd-rich-item-renderer") || el;
@@ -31,14 +74,12 @@ function hideElement(el) {
 
 // Helper function to check video age
 function isOlderThanMonths(text, months) {
-  const match = text.match(
-    /(\d+)\s+(second|minute|hour|day|week|month|year)s?\s+ago/i
-  );
-  
+  const match = text.match(TRANSLATION.ago);
   if (!match) return false;
 
   const value = parseInt(match[1], 10);
-  const unit = match[2].toLowerCase();
+  const rawUnit = match[2].toLowerCase();
+  const unit = TRANSLATION.units[rawUnit] || rawUnit;
 
   if (unit === "month" && value >= months) return true;
   if (unit === "year") return true;
@@ -55,14 +96,15 @@ function isOlderThanMonths(text, months) {
 function getViewCount(el) {
   const viewText = Array.from(el.querySelectorAll('.yt-core-attributed-string, span[role="text"]'))
     .map(e => e.textContent.trim())
-    .find(t => /\bviews?\b/i.test(t));
+    .find(t => TRANSLATION.views.test(t));
 
   if (!viewText) return null;
 
   // Handle "No views"
-  if (/no views?/i.test(viewText)) return 0;
+  if (TRANSLATION.noViews.test(viewText)) return 0;
 
-  const match = viewText.match(/([\d,.]+)\s*(K|M)?\s*views?/i);
+  // Match number before "views"
+  const match = viewText.match(/([\d,.]+)\s*(K|M)?/i);
   if (!match) return null;
 
   let num = parseFloat(match[1].replace(/,/g, ""));
@@ -147,7 +189,7 @@ function filterVideos() {
 
     // Channel Videos tab: only hide members-only content
     if (isChannelVideosPage && SETTINGS.hideMembersOnly) {
-      if (text.includes("Members only") || el.querySelector(".sponsorThumbnailLabelVisible") || text.includes("Exclusive Access")) {
+      if (TRANSLATION.membersOnly.some(term => text.toLowerCase().includes(term.toLowerCase())) || el.querySelector(".sponsorThumbnailLabelVisible")) {
         hideElement(el);
       }
       return;
@@ -173,7 +215,7 @@ function filterVideos() {
 
     // Hide members-only videos
     if (SETTINGS.hideMembersOnly) {
-      if (text.includes("Members only") || el.querySelector(".sponsorThumbnailLabelVisible") || text.includes("Exclusive Access")) {
+      if (TRANSLATION.membersOnly.some(term => text.toLowerCase().includes(term.toLowerCase())) || el.querySelector(".sponsorThumbnailLabelVisible")) {
         hideElement(el);
         return;
       }
@@ -181,13 +223,15 @@ function filterVideos() {
 
     // Hide videos under minViews
     const views = getViewCount(el);
+
     if (views !== null && views < SETTINGS.minViews) {
       hideElement(el);
       return;
     }
 
     // Hide live videos under hideLiveUnder
-    const liveMatch = text.match(/([\d,.]+)\s*(K|M)?\s*watching/i);
+    const liveMatch = text.match(TRANSLATION.watching);
+
     if (liveMatch) {
       let num = parseFloat(liveMatch[1].replace(/,/g, ""));
       const unit = liveMatch[2];
