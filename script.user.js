@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tidy Tube
 // @namespace    https://github.com/jaykeny/
-// @version      1.4.0
+// @version      1.5.0
 // @description  A lightweight script to declutter YouTube by hiding videos for members and videos under a certain view count.
 // @author       JayKeny
 // @match        https://www.youtube.com/*
@@ -27,15 +27,27 @@ const TRANSLATIONS = {
     views: /\bviews?\b/i,
     noViews: /no views?/i,
     watching: /([\d,.]+)\s*(K|M)?\s*watching/i,
-    ago: /(\d+)\s+(second|minute|hour|day|week|month|year)s?\s+ago/i,
+    ago: /(\d+)\s*(second|sec|s|minute|min|m|hour|hr|h|day|d|week|wk|w|month|mo|year|yr|y)s?\s+ago/i,
     units: {
       second: "second",
+      sec: "second",
+      s: "second",
       minute: "minute",
+      min: "minute",
+      m: "minute",
       hour: "hour",
+      hr: "hour",
+      h: "hour",
       day: "day",
+      d: "day",
       week: "week",
+      wk: "week",
+      w: "week",
       month: "month",
-      year: "year"
+      mo: "month",
+      year: "year",
+      yr: "year",
+      y: "year"
     }
   },
   fr: {
@@ -43,17 +55,30 @@ const TRANSLATIONS = {
     views: /\b(vues?)\b/i,
     noViews: /aucune? vue/i,
     watching: /([\d,.]+)\s*(K|M)?\s*(personnes)?\s*(regardent|en direct)/i,
-    ago: /il y a\s+(\d+)\s+(seconde|minute|heure|jour|semaine|mois|an|année)s?/i,
+    ago: /il y a\s+(\d+)\s*(seconde|secondes|sec(?:onde)?s?|s|minute|minutes|min|heure|heures|h|jour|jours|j|semaine|sem(?:\.|aines?)?|mois|m\.?|an|ans|année|années)/i,
     units: {
       seconde: "second",
+      secondes: "second",
+      sec: "second",
+      secs: "second",
+      s: "second",
       minute: "minute",
+      minutes: "minute",
+      min: "minute",
       heure: "hour",
+      heures: "hour",
+      h: "hour",
       jour: "day",
+      jours: "day",
+      j: "day",
       semaine: "week",
+      semaines: "week",
+      sem: "week",
       mois: "month",
+      m: "month",
       an: "year",
-      année: "year",
       ans: "year",
+      année: "year",
       années: "year"
     }
   }
@@ -78,7 +103,7 @@ function isOlderThanMonths(text, months) {
   if (!match) return false;
 
   const value = parseInt(match[1], 10);
-  const rawUnit = match[2].toLowerCase();
+  const rawUnit = match[2].toLowerCase().replace(/\.$/, "");
   const unit = TRANSLATION.units[rawUnit] || rawUnit;
 
   if (unit === "month" && value >= months) return true;
@@ -94,25 +119,55 @@ function isOlderThanMonths(text, months) {
 
 // Get view count from the new YouTube layout
 function getViewCount(el) {
-  const viewText = Array.from(el.querySelectorAll('.yt-core-attributed-string, span[role="text"]'))
-    .map(e => e.textContent.trim())
-    .find(t => TRANSLATION.views.test(t));
+  function parseNumericCount(text) {
+    const normalized = text
+      .replace(/\u00a0/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .toLowerCase();
+    const match = normalized.match(/([\d.,]+)\s*(k|m|b|mille|millier|milliers|million|millions|milliard|milliards|thousand|billion|billions)?/i);
+    if (!match) return null;
 
-  if (!viewText) return null;
+    let numericText = match[1].replace(/\s/g, "");
+    if (numericText.includes(",") && !numericText.includes(".")) {
+      numericText = numericText.replace(",", ".");
+    } else {
+      numericText = numericText.replace(/,/g, "");
+    }
 
-  // Handle "No views"
-  if (TRANSLATION.noViews.test(viewText)) return 0;
+    let num = parseFloat(numericText);
+    if (Number.isNaN(num)) return null;
 
-  // Match number before "views"
-  const match = viewText.match(/([\d,.]+)\s*(K|M)?/i);
-  if (!match) return null;
+    const unit = (match[2] || "").toLowerCase();
+    if (unit === "k" || unit === "mille" || unit === "millier" || unit === "milliers" || unit === "thousand") {
+      num *= 1000;
+    } else if (unit === "m" || unit === "million" || unit === "millions") {
+      num *= 1000000;
+    } else if (unit === "b" || unit === "milliard" || unit === "milliards" || unit === "billion" || unit === "billions") {
+      num *= 1000000000;
+    }
 
-  let num = parseFloat(match[1].replace(/,/g, ""));
-  const unit = match[2];
-  if (unit === "K") num *= 1000;
-  else if (unit === "M") num *= 1000000;
+    return num;
+  }
 
-  return num;
+  const snippets = Array.from(el.querySelectorAll('.yt-core-attributed-string, span[role="text"]'))
+    .flatMap(node => [node.textContent.trim(), (node.getAttribute("aria-label") || "").trim()])
+    .filter(Boolean);
+
+  // First pass: explicit localized "views" text ("1.2K views", "80 thousand views", etc.)
+  const explicitViewsText = snippets.find(t => TRANSLATION.views.test(t));
+  if (explicitViewsText) {
+    if (TRANSLATION.noViews.test(explicitViewsText)) return 0;
+    return parseNumericCount(explicitViewsText);
+  }
+
+  // Fallback: compact metadata text that often appears without "views" (e.g. "80K", "999")
+  const compactViewsText = snippets.find(t => /^([\d.,]+)\s*(K|M|B)?$/i.test(t));
+  if (compactViewsText) {
+    return parseNumericCount(compactViewsText);
+  }
+
+  return null;
 }
 
 // Checks if video is watched
@@ -129,6 +184,10 @@ function isWatched(el) {
 
 // Core filter logic
 function filterVideos() {
+  if (location.pathname.startsWith("/feed/history")) {
+    return;
+  }
+
   const isChannelVideosPage = location.pathname.includes("/videos");
 
   // Sections
