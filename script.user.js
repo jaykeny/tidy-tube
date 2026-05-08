@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tidy Tube
 // @namespace    https://github.com/jaykeny/
-// @version      1.5.0
+// @version      1.5.1
 // @description  A lightweight script to declutter YouTube by hiding videos for members and videos under a certain view count.
 // @author       JayKeny
 // @match        https://www.youtube.com/*
@@ -117,6 +117,26 @@ function isOlderThanMonths(text, months) {
   return false;
 }
 
+// Checks if a card is marked members-only
+function isMembersOnlyContent(el, text) {
+  const lowerText = (text || "").toLowerCase();
+
+  // New/legacy badge containers used by YouTube for members-only lockups.
+  const badgeTexts = Array.from(
+    el.querySelectorAll(".yt-badge-shape__text, badge-shape .ytBadgeShapeText")
+  )
+    .map(node => (node.textContent || "").trim().toLowerCase())
+    .filter(Boolean);
+
+  const hasMembersBadge = badgeTexts.some(badge =>
+    TRANSLATION.membersOnly.some(term => badge.includes(term.toLowerCase()))
+  );
+  if (hasMembersBadge) return true;
+
+  // Fallback to localized text scan in case badge markup changes.
+  return TRANSLATION.membersOnly.some(term => lowerText.includes(term.toLowerCase()));
+}
+
 // Get view count from the new YouTube layout
 function getViewCount(el) {
   function parseNumericCount(text) {
@@ -199,12 +219,17 @@ function filterVideos() {
   document.querySelectorAll("yt-lockup-view-model").forEach(function (section) {
     const text = section.textContent;
 
+    // Channel Videos tab: only hide members-only content
+    if (isChannelVideosPage) {
+      if (SETTINGS.hideMembersOnly && isMembersOnlyContent(section, text)) {
+        hideElement(section);
+      }
+      return;
+    }
+
     // Hide members-only videos
     if (SETTINGS.hideMembersOnly) {
-      const isMembersOnly = Array.from(section.querySelectorAll('.yt-badge-shape__text'))
-        .some(b => b.textContent.trim().toLowerCase().includes("members only"));
-
-      if (isMembersOnly || text.includes("Members only")) {
+      if (isMembersOnlyContent(section, text)) {
         hideElement(section);
         return;
       }
@@ -248,7 +273,7 @@ function filterVideos() {
 
     // Channel Videos tab: only hide members-only content
     if (isChannelVideosPage && SETTINGS.hideMembersOnly) {
-      if (TRANSLATION.membersOnly.some(term => text.toLowerCase().includes(term.toLowerCase())) || el.querySelector(".sponsorThumbnailLabelVisible")) {
+      if (isMembersOnlyContent(el, text)) {
         hideElement(el);
       }
       return;
@@ -274,7 +299,7 @@ function filterVideos() {
 
     // Hide members-only videos
     if (SETTINGS.hideMembersOnly) {
-      if (TRANSLATION.membersOnly.some(term => text.toLowerCase().includes(term.toLowerCase())) || el.querySelector(".sponsorThumbnailLabelVisible")) {
+      if (isMembersOnlyContent(el, text)) {
         hideElement(el);
         return;
       }
