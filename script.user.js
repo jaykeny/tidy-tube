@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tidy Tube
 // @namespace    https://github.com/jaykeny/
-// @version      1.5.1
+// @version      1.6.0
 // @description  A lightweight script to declutter YouTube by hiding videos for members and videos under a certain view count.
 // @author       JayKeny
 // @match        https://www.youtube.com/*
@@ -213,6 +213,11 @@ function filterVideos() {
   // Sections
   document.querySelectorAll("ytd-rich-section-renderer").forEach(function (section) {
     hideElement(section);
+  });
+
+  // Promotional homepage banners (for example, "YouTube featured" statement banners).
+  document.querySelectorAll("#big-yoodle, ytd-statement-banner-renderer, ytd-rich-grid-renderer > #big-yoodle").forEach(function (banner) {
+    hideElement(banner);
   });
 
   // Video pages

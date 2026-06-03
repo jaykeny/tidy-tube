@@ -225,6 +225,11 @@ function filterVideos() {
     hideElement(section);
   });
 
+  // Promotional homepage banners (for example, "YouTube featured" statement banners).
+  document.querySelectorAll("#big-yoodle, ytd-statement-banner-renderer, ytd-rich-grid-renderer > #big-yoodle").forEach(function (banner) {
+    hideElement(banner);
+  });
+
   // Video pages
   document.querySelectorAll("yt-lockup-view-model").forEach(function (section) {
     const text = section.textContent;
@@ -384,6 +389,9 @@ const SETTINGS = {
 ```
 
 ## Changelog
+
+### 1.6.0
+* Added: Additional blocking of homepage promotional banners
 
 ### 1.5.1
 * Added: Reusable isMembersOnlyContent() helper to centralize and harden members-only checks (badge-based + localized text fallback).
